@@ -5,14 +5,11 @@ export interface User {
   picture?: string;
 }
 
-export interface InitialOnboardingData {
+export interface OnboardingData {
   industry: string;
   goal: string;
   topics: string;
   tone: string;
-}
-
-export interface OnboardingData extends InitialOnboardingData {
   targetAudience: string;
 }
 
@@ -27,4 +24,50 @@ export interface Strategy {
   tone: string;
   targetAudience: string;
   postIdeas: PostIdea[];
+}
+
+// New types for Profile Analysis
+export interface AnalysisCategory {
+  category: string; // e.g., "Clarity & Impact", "Call to Action"
+  feedback: string; // The detailed feedback for this category
+}
+
+export interface ProfileAnalysisResult {
+  overallImpression: string;
+  feedback: AnalysisCategory[];
+}
+
+
+// New types for Calendar and Scheduling
+export interface PostingSuggestion {
+    day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
+    time: string; // e.g., "9:00 AM - 11:00 AM EST"
+}
+
+export interface ScheduledPost {
+    id: string; // A unique ID for the post
+    title: string;
+    content: string;
+    scheduledDate: string; // ISO string for the date and time
+}
+
+export interface ScheduleSuggestion {
+  postTitle: string; // The title of the recommended post, must match one of the PostIdea titles.
+  reason: string; // A brief explanation for why this post is recommended now.
+}
+
+// New types for Trends
+export interface Trend {
+  title: string;
+  summary: string;
+}
+
+export interface TrendSource {
+  uri: string;
+  title: string;
+}
+
+export interface TrendsResult {
+  trends: Trend[];
+  sources: TrendSource[];
 }

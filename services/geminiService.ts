@@ -1,62 +1,49 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { InitialOnboardingData, OnboardingData, Strategy, PostIdea } from '../types';
+import type { OnboardingData, Strategy, PostIdea, ProfileAnalysisResult, PostingSuggestion, ScheduleSuggestion, TrendsResult, Trend } from '../types';
 
-const apiKey = process.env.GEMINI_API_KEY;
-console.log(apiKey);
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const audienceSchema = {
+const onboardingAnalysisSchema = {
     type: Type.OBJECT,
     properties: {
-        audiences: {
-            type: Type.ARRAY,
-            description: "A list of 3-5 distinct, specific target audiences.",
-            items: {
-                type: Type.STRING,
-                description: "A potential target audience, e.g., 'CTOs at early-stage startups' or 'Product Managers in the FinTech space'."
-            }
-        }
+        industry: { type: Type.STRING, description: "The user's primary industry or field, deduced from their profile." },
+        goal: { type: Type.STRING, description: "A likely primary goal for the user on LinkedIn, such as 'Build a personal brand' or 'Generate leads'." },
+        topics: { type: Type.STRING, description: "A comma-separated list of 3-5 key topics of expertise mentioned or implied in the text." },
+        tone: { type: Type.STRING, description: "The most fitting tone of voice, chosen from: 'Professional', 'Casual & Humorous', 'Inspirational & Motivational', 'Technical & Educational'." },
+        targetAudience: { type: Type.STRING, description: "A specific, deduced target audience for the user, e.g., 'Hiring managers in tech' or 'Potential clients in the marketing sector'." }
     },
-    required: ["audiences"]
+    required: ["industry", "goal", "topics", "tone", "targetAudience"]
 };
 
-export const generateAudienceSuggestions = async (data: InitialOnboardingData): Promise<string[]> => {
+export const analyzeProfileForOnboarding = async (profileText: string): Promise<OnboardingData> => {
     const prompt = `
-        You are a world-class LinkedIn strategist. Based on the user's information, generate a few potential target audience suggestions for their LinkedIn presence. The audiences should be specific and relevant to their industry, goals, and topics.
+        You are a world-class LinkedIn strategist and branding expert. Analyze the following LinkedIn "About" section. Based on the text, your task is to deduce the user's professional identity and generate a preliminary strategy profile for them.
 
-        User Information:
-        - Industry: ${data.industry}
-        - Primary Goal on LinkedIn: ${data.goal}
-        - Topics of Expertise/Passion: ${data.topics}
-        - Desired Tone of Voice: ${data.tone}
+        User's "About" Section:
+        ---
+        ${profileText}
+        ---
 
-        Based on this, generate a JSON object that follows the provided schema. Provide 3-5 distinct suggestions.
+        Based *only* on the text provided, generate a JSON object that follows the provided schema. Deduce the most likely values for each field. Be specific and insightful. For topics, provide a comma-separated string.
     `;
-
     const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             responseMimeType: "application/json",
-            responseSchema: audienceSchema,
+            responseSchema: onboardingAnalysisSchema,
         }
     });
 
     const jsonText = response.text.trim();
     try {
-        const parsedJson = JSON.parse(jsonText);
-        if (parsedJson && Array.isArray(parsedJson.audiences)) {
-            return parsedJson.audiences as string[];
-        }
-        console.error("Parsed JSON for audience does not match expected format:", parsedJson);
-        throw new Error("Invalid format for audience suggestions.");
+        return JSON.parse(jsonText) as OnboardingData;
     } catch (e) {
-        console.error("Failed to parse JSON from Gemini for audiences:", jsonText);
+        console.error("Failed to parse JSON from Gemini for onboarding analysis:", jsonText);
         throw new Error("Received an invalid format from the AI. Please try again.");
     }
 };
-
 
 const strategySchema = {
     type: Type.OBJECT,
@@ -100,7 +87,7 @@ export const generateStrategy = async (data: OnboardingData): Promise<Strategy> 
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -135,9 +122,279 @@ export const generatePost = async (postIdea: PostIdea, strategy: Strategy): Prom
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt
     });
 
     return response.text;
+};
+
+const profileAnalysisSchema = {
+    type: Type.OBJECT,
+    properties: {
+        overallImpression: {
+            type: Type.STRING,
+            description: "A brief, encouraging summary of the profile's strengths and potential."
+        },
+        feedback: {
+            type: Type.ARRAY,
+            description: "A list of actionable feedback points categorized for clarity.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    category: {
+                        type: Type.STRING,
+                        description: "The area of feedback, e.g., 'Clarity & Impact', 'Call to Action', 'Keyword Optimization'."
+                    },
+                    feedback: {
+                        type: Type.STRING,
+                        description: "Specific, constructive advice for this category."
+                    }
+                },
+                required: ["category", "feedback"]
+            }
+        }
+    },
+    required: ["overallImpression", "feedback"]
+};
+
+
+export const analyzeProfile = async (aboutText: string): Promise<ProfileAnalysisResult> => {
+    const prompt = `
+        You are a top-tier LinkedIn career coach and copywriter. Analyze the following LinkedIn "About" section. Provide an overall impression and specific, actionable feedback broken down into categories like 'Clarity & Impact', 'Call to Action', and 'Keyword Optimization'. The feedback should be constructive and help the user improve their profile to attract their target audience.
+
+        User's "About" Section:
+        ---
+        ${aboutText}
+        ---
+
+        Generate a JSON object that follows the provided schema.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: profileAnalysisSchema,
+        }
+    });
+    
+    const jsonText = response.text.trim();
+    try {
+        return JSON.parse(jsonText) as ProfileAnalysisResult;
+    } catch (e) {
+        console.error("Failed to parse JSON from Gemini for profile analysis:", jsonText);
+        throw new Error("Received an invalid format from the AI for profile analysis. Please try again.");
+    }
+};
+
+const postingSuggestionsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        suggestions: {
+            type: Type.ARRAY,
+            description: "A list of 3-4 suggested posting times.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    day: {
+                        type: Type.STRING,
+                        enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                    },
+                    time: {
+                        type: Type.STRING,
+                        description: "A specific time or time window, e.g., '9:00 AM - 11:00 AM EST'."
+                    }
+                },
+                required: ["day", "time"]
+            }
+        }
+    },
+    required: ["suggestions"]
+}
+
+export const getPostingSuggestions = async (strategy: Strategy): Promise<PostingSuggestion[]> => {
+    const prompt = `
+        Based on general best practices for LinkedIn and the user's specific strategy, suggest 3-4 optimal days and times for them to post.
+
+        User's Strategy:
+        - Industry: ${strategy.summary}
+        - Target Audience: ${strategy.targetAudience}
+
+        Consider when this audience is most likely to be active on LinkedIn. Provide the suggestions in a JSON object following the schema.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: postingSuggestionsSchema,
+        }
+    });
+
+    const jsonText = response.text.trim();
+    try {
+        const parsedJson = JSON.parse(jsonText);
+        return parsedJson.suggestions as PostingSuggestion[];
+    } catch (e) {
+        console.error("Failed to parse JSON from Gemini for posting suggestions:", jsonText);
+        return []; // Return empty array on failure
+    }
+};
+
+const scheduleSuggestionSchema = {
+    type: Type.OBJECT,
+    properties: {
+        postTitle: {
+            type: Type.STRING,
+            description: "The exact title of the post idea that is being recommended for scheduling."
+        },
+        reason: {
+            type: Type.STRING,
+            description: "A concise reason why this specific post should be scheduled next, based on the user's strategy."
+        }
+    },
+    required: ["postTitle", "reason"]
+};
+
+export const getScheduleSuggestion = async (strategy: Strategy): Promise<ScheduleSuggestion | null> => {
+    const postTitles = strategy.postIdeas.map(p => `- "${p.title}"`).join('\n');
+
+    const prompt = `
+        You are a strategic content planner for LinkedIn. A user has a content strategy and a list of post ideas. Your task is to recommend the single best post for them to schedule next.
+
+        User's Strategy:
+        - Goal: Drive engagement and build authority.
+        - Target Audience: ${strategy.targetAudience}
+        - Content Pillars: ${strategy.contentPillars.join(', ')}
+
+        Available Post Ideas:
+        ${postTitles}
+
+        Analyze the ideas and choose the one that would be most impactful to post now. Provide a compelling but brief reason for your choice. Return your suggestion as a JSON object following the schema. The 'postTitle' must be an exact match from the list of available ideas.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: scheduleSuggestionSchema,
+        }
+    });
+
+    const jsonText = response.text.trim();
+    try {
+        return JSON.parse(jsonText) as ScheduleSuggestion;
+    } catch (e) {
+        console.error("Failed to parse JSON from Gemini for schedule suggestion:", jsonText);
+        return null; // Return null on failure
+    }
+};
+
+const postIdeasListSchema = {
+    type: Type.OBJECT,
+    properties: {
+        postIdeas: {
+            type: Type.ARRAY,
+            description: "A list of 5 distinct, new, and engaging post ideas.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    title: { type: Type.STRING, description: "A catchy title for the post idea." },
+                    description: { type: Type.STRING, description: "A brief one-sentence description of what the post would cover." }
+                },
+                required: ["title", "description"]
+            }
+        }
+    },
+    required: ["postIdeas"]
+};
+
+export const regeneratePostIdeas = async (strategy: Strategy): Promise<PostIdea[]> => {
+    const existingTitles = strategy.postIdeas.map(idea => idea.title).join(', ');
+    const prompt = `
+        You are a world-class LinkedIn strategist. Based on the user's strategy below, generate 5 completely new and distinct content ideas.
+
+        User's Strategy:
+        - Target Audience: ${strategy.targetAudience}
+        - Content Pillars: ${strategy.contentPillars.join(', ')}
+        - Tone of Voice: ${strategy.tone}
+
+        IMPORTANT: Do NOT repeat or rephrase any of the following existing ideas: "${existingTitles}". The new ideas must be different.
+
+        Generate a JSON object that follows the provided schema, containing a list of 5 new post ideas.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: postIdeasListSchema,
+        }
+    });
+
+    const jsonText = response.text.trim();
+    try {
+        const parsedJson = JSON.parse(jsonText);
+        return parsedJson.postIdeas as PostIdea[];
+    } catch (e) {
+        console.error("Failed to parse JSON from Gemini for regenerating ideas:", jsonText);
+        throw new Error("Received an invalid format from the AI. Please try again.");
+    }
+};
+
+// Helper function to parse the text response for trends
+const parseTrendsFromText = (text: string): Trend[] => {
+    const trends: Trend[] = [];
+    const trendRegex = /Title: (.*?)\nSummary: (.*?)(?=\n\nTitle:|\n\n$|$)/gs;
+    let match;
+    while ((match = trendRegex.exec(text)) !== null) {
+        trends.push({
+            title: match[1].trim(),
+            summary: match[2].trim(),
+        });
+    }
+    return trends;
+};
+
+export const fetchLinkedInTrends = async (strategy: Strategy): Promise<TrendsResult> => {
+    const prompt = `You are a LinkedIn content expert. Analyze the user's strategy:
+Strategy Summary: '${strategy.summary}'
+Target Audience: '${strategy.targetAudience}'
+Key Topics: '${strategy.contentPillars.join(', ')}'.
+
+Based on this, use Google Search to identify 3 key trending topics, articles, or discussions on LinkedIn right now that would be highly relevant for them to post about.
+
+For each of the 3 trends, provide a concise title and a one-sentence summary. Format your response clearly, with each trend having a "Title:" and a "Summary:" on separate lines, with a blank line between trends.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            tools: [{ googleSearch: {} }],
+        }
+    });
+
+    const text = response.text;
+    const trends = parseTrendsFromText(text);
+
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const sources = groundingChunks
+      .map(chunk => chunk.web)
+      .filter((web): web is { uri: string; title: string } => !!web?.uri && !!web?.title)
+      .filter((web, index, self) => index === self.findIndex(t => t.uri === web.uri)); // Deduplicate sources by URI
+
+    if (trends.length === 0 && text.length > 0) {
+      // Fallback if regex fails, just make a single trend item from the whole text
+      trends.push({
+        title: "Latest Insights",
+        summary: text
+      });
+    }
+
+    return { trends, sources };
 };

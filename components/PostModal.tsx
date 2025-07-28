@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CopyIcon, CheckIcon, LoadingIcon } from '../constants';
+import { CopyIcon, CheckIcon, LoadingIcon, CalendarIcon } from '../constants';
 
 interface PostModalProps {
   isOpen: boolean;
@@ -8,9 +8,10 @@ interface PostModalProps {
   isLoading: boolean;
   content: string;
   title: string;
+  onSchedule: () => void;
 }
 
-export const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose, isLoading, content, title }) => {
+export const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose, isLoading, content, title, onSchedule }) => {
   const [hasCopied, setHasCopied] = useState(false);
 
   useEffect(() => {
@@ -50,7 +51,15 @@ export const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose, isLoading
           )}
         </div>
         
-        <div className="bg-slate-700 p-4 rounded-b-lg flex justify-end">
+        <div className="bg-slate-700 p-4 rounded-b-lg flex justify-end gap-4">
+            <button
+                onClick={onSchedule}
+                disabled={isLoading || !content}
+                className="flex items-center gap-2 bg-slate-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-slate-500 transition-colors disabled:bg-slate-500 disabled:cursor-not-allowed"
+            >
+                <CalendarIcon className="w-5 h-5" />
+                Schedule Post
+            </button>
             <button
                 onClick={handleCopy}
                 disabled={isLoading || !content}
