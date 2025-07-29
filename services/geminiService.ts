@@ -36,7 +36,7 @@ export const analyzeProfileForOnboarding = async (profileText: string): Promise<
         }
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim() || '';
     try {
         return JSON.parse(jsonText) as OnboardingData;
     } catch (e) {
@@ -95,7 +95,7 @@ export const generateStrategy = async (data: OnboardingData): Promise<Strategy> 
         }
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim() || '';
     try {
         const parsedJson = JSON.parse(jsonText);
         return parsedJson as Strategy;
@@ -197,7 +197,7 @@ export const getPostingSuggestions = async (strategy: Strategy): Promise<Posting
         }
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim() || '';
     try {
         const parsedJson = JSON.parse(jsonText);
         return parsedJson.suggestions as PostingSuggestion[];
@@ -248,7 +248,7 @@ export const getScheduleSuggestion = async (strategy: Strategy): Promise<Schedul
         }
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim() || '';
     try {
         return JSON.parse(jsonText) as ScheduleSuggestion;
     } catch (e) {
@@ -300,7 +300,7 @@ export const regeneratePostIdeas = async (strategy: Strategy): Promise<PostIdea[
         }
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim() || '';
     try {
         const parsedJson = JSON.parse(jsonText);
         return parsedJson.postIdeas as PostIdea[];
@@ -413,7 +413,7 @@ export const generateCommentReplies = async (postContent: string, comment: strin
         }
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim() || '';
     try {
         const parsedJson = JSON.parse(jsonText);
         return parsedJson.suggestions as CommentReplySuggestion[];

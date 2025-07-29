@@ -4,7 +4,7 @@ import type { Trend, Strategy } from '@/types';
 
 const parseTrendsFromText = (text: string): Trend[] => {
     const trends: Trend[] = [];
-    const trendRegex = /Title: (.*?)\nSummary: (.*?)(?=\n\nTitle:|\n\n$|$)/gs;
+    const trendRegex = /Title: (.*?)\nSummary: (.*?)(?=\n\nTitle:|\n\n$|$)/g;
     let match;
     while ((match = trendRegex.exec(text)) !== null) {
         trends.push({

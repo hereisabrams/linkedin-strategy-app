@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         }
     });
 
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim() || '';
     const parsedJson = JSON.parse(jsonText);
     return NextResponse.json(parsedJson);
 
