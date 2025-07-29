@@ -71,10 +71,3 @@ export interface CommentReplySuggestion {
   style: string; // e.g., "Insightful", "Friendly", "Question-based"
   reply: string;
 }
-
-// New type for scraping
-export interface ScrapedProfileData {
-  name: string;
-  headline: string;
-  about: string;
-}

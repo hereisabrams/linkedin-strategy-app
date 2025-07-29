@@ -1,8 +1,7 @@
-"use client";
 
 import React, { useState, useMemo } from 'react';
-import type { ScheduledPost, PostingSuggestion } from '@/types';
-import { TrashIcon } from '@/constants';
+import type { ScheduledPost, PostingSuggestion } from '../types';
+import { TrashIcon } from '../constants';
 
 interface CalendarViewProps {
   scheduledPosts: ScheduledPost[];
@@ -12,8 +11,6 @@ interface CalendarViewProps {
 }
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const dayNames: ("Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday")[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ scheduledPosts, postingSuggestions, onViewPost, onDeletePost }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -46,14 +43,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ scheduledPosts, post
     const days = [];
     // Blank days for the start of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`blank-${i}`} className="border-r border-b border-brand-border"></div>);
+      days.push(<div key={`blank-${i}`} className="border-r border-b border-border"></div>);
     }
 
     // Actual days
     for (let day = 1; day <= totalDays; day++) {
         const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
         const dateString = date.toISOString().split('T')[0];
-        const dayOfWeekName = dayNames[date.getDay()];
+        const dayOfWeekName = daysOfWeek[date.getDay()] as "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
 
         const postsForDay = scheduledPosts.filter(p => p.scheduledDate.startsWith(dateString));
         const suggestionsForDay = suggestionMap.get(dayOfWeekName);
@@ -61,27 +58,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ scheduledPosts, post
         const isToday = new Date().toISOString().split('T')[0] === dateString;
 
         days.push(
-            <div key={day} className="relative border-r border-b border-brand-border p-2 min-h-[120px] flex flex-col transition-colors hover:bg-brand-surface">
-                <time dateTime={dateString} className={`font-semibold ${isToday ? 'bg-brand-primary text-white rounded-full flex items-center justify-center w-6 h-6' : 'text-brand-text-primary'}`}>
+            <div key={day} className="relative border-r border-b border-border p-2 min-h-[120px] flex flex-col hover:bg-surface-secondary/30 transition-colors">
+                <time dateTime={dateString} className={`font-semibold ${isToday ? 'bg-primary text-white rounded-full flex items-center justify-center w-6 h-6' : 'text-text-primary'}`}>
                     {day}
                 </time>
                 {suggestionsForDay && (
-                    <div className="absolute top-2 right-2 text-xs text-brand-primary opacity-70" title={`Suggested: ${suggestionsForDay.join(', ')}`}>
+                    <div className="absolute top-1 right-1 text-xs text-primary/70" title={`Suggested: ${suggestionsForDay.join(', ')}`}>
                       💡
                     </div>
                 )}
-                <div className="flex-grow mt-2 space-y-1 overflow-y-auto">
+                <div className="flex-grow mt-1 space-y-1 overflow-y-auto">
                     {postsForDay.map(post => (
                          <div 
                             key={post.id} 
-                            className="group relative bg-brand-primary/20 text-brand-primary text-xs p-2 rounded-md cursor-pointer hover:bg-brand-primary/40 hover:shadow-lg transition-all"
+                            className="group relative bg-primary/20 text-blue-200 text-xs p-2 rounded-md cursor-pointer hover:bg-primary/40 hover:shadow-lg transition-all"
                             onClick={() => onViewPost(post)}
                         >
-                            <p className="font-semibold truncate pr-4 text-brand-text-primary">{post.title}</p>
-                            <p className="truncate text-brand-text-secondary">{new Date(post.scheduledDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                            <p className="font-semibold truncate pr-4">{post.title}</p>
+                            <p className="truncate opacity-80">{new Date(post.scheduledDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                             <button
                                 onClick={(e) => { e.stopPropagation(); onDeletePost(post.id); }}
-                                className="absolute top-1 right-1 p-0.5 bg-brand-danger/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-brand-danger"
+                                className="absolute top-1 right-1 p-0.5 bg-red-600/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/90"
                                 title="Delete Post"
                             >
                                 <TrashIcon className="w-3.5 h-3.5" />
@@ -96,22 +93,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ scheduledPosts, post
   };
 
   return (
-    <div className="bg-brand-card border border-brand-border rounded-lg shadow-lg p-6">
+    <div className="bg-surface rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center mb-4">
-        <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-brand-surface">&lt;</button>
-        <h2 className="text-xl font-bold text-brand-text-primary">
+        <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-secondary">&lt;</button>
+        <h2 className="text-xl font-bold text-text-primary">
           {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
         </h2>
-        <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-brand-surface">&gt;</button>
+        <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-secondary">&gt;</button>
       </div>
-      <div className="grid grid-cols-7 border-t border-l border-brand-border">
+      <div className="grid grid-cols-7 border-t border-l border-border">
         {daysOfWeek.map(day => (
-          <div key={day} className="text-center font-semibold text-brand-text-secondary text-sm py-2 border-r border-b border-brand-border bg-brand-surface">{day}</div>
+          <div key={day} className="text-center font-semibold text-text-tertiary text-sm py-2 border-r border-b border-border bg-surface-secondary/50">{day}</div>
         ))}
         {renderCalendarDays()}
       </div>
        {postingSuggestions.length > 0 && (
-        <div className="mt-4 text-xs text-brand-text-secondary">
+        <div className="mt-4 text-xs text-text-tertiary">
            💡 Best times to post suggested by AI for your audience.
         </div>
       )}

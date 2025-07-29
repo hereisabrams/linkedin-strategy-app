@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LinkedIn Strategy Architect</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-871M454WX6"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-871M454WX6');
+    </script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8258399315362229"
+     crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -12,9 +23,17 @@
           extend: {
             colors: {
               'brand-blue': '#0A66C2',
-              'brand-dark': '#1D2226',
-              'brand-light': '#F3F2EE',
-              'brand-gray': '#e9e5df',
+              'background': '#111827', // gray-900
+              'surface': '#1f2937',    // gray-800
+              'surface-secondary': '#374151', // gray-700
+              'primary': '#3b82f6',     // blue-500
+              'primary-hover': '#2563eb', // blue-600
+              'secondary': '#4b5563',   // gray-600
+              'secondary-hover': '#374151', // gray-700
+              'border': '#374151',      // gray-700
+              'text-primary': '#f9fafb', // gray-50
+              'text-secondary': '#d1d5db', // gray-200
+              'text-tertiary': '#9ca3af', // gray-400
             },
           }
         }
@@ -28,17 +47,13 @@
     "react/": "https://esm.sh/react@^19.1.0/",
     "react": "https://esm.sh/react@^19.1.0",
     "@react-oauth/google": "https://esm.sh/@react-oauth/google@0.12.2/",
-    "jwt-decode": "https://esm.sh/jwt-decode@^4.0.0",
-    "next/": "https://esm.sh/next@^15.4.4/",
-    "next": "https://esm.sh/next@^15.4.4",
-    "tailwindcss": "https://esm.sh/tailwindcss@^4.1.11",
-    "puppeteer": "https://esm.sh/puppeteer@^24.15.0"
+    "jwt-decode": "https://esm.sh/jwt-decode@^4.0.0"
   }
 }
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-brand-dark">
+  <body class="bg-background">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

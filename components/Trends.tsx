@@ -1,8 +1,7 @@
-"use client";
 
 import React from 'react';
-import type { TrendsResult } from '@/types';
-import { ChartTrendingUpIcon, LoadingIcon } from '@/constants';
+import type { TrendsResult } from '../types';
+import { ChartTrendingUpIcon, LoadingIcon } from '../constants';
 
 interface TrendsProps {
     onFetchTrends: () => void;
@@ -14,21 +13,21 @@ export const Trends: React.FC<TrendsProps> = ({ onFetchTrends, trendsResult, isL
     const hasFetched = trendsResult !== null;
 
     return (
-        <div className="bg-brand-card border border-brand-border rounded-lg p-6">
-            <h2 className="text-xl font-bold text-brand-text-primary mb-4 flex items-center gap-2">
+        <div className="bg-surface rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-text-primary mb-4 flex items-center gap-2">
                 <ChartTrendingUpIcon className="w-7 h-7" />
                 LinkedIn Trends
             </h2>
 
             {!hasFetched && !isLoading && (
                 <>
-                    <p className="text-brand-text-secondary mb-4 text-sm">
+                    <p className="text-text-tertiary mb-4 text-sm">
                         Discover what's currently trending on LinkedIn for your specific industry and audience.
                     </p>
                     <button
                         onClick={onFetchTrends}
                         disabled={isLoading}
-                        className="w-full flex items-center justify-center gap-2 bg-brand-primary text-white font-semibold py-2 px-4 rounded-md hover:bg-brand-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 bg-primary text-white font-semibold py-2 px-4 rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <ChartTrendingUpIcon className="w-5 h-5" />
                         <span>Discover Trends</span>
@@ -38,7 +37,7 @@ export const Trends: React.FC<TrendsProps> = ({ onFetchTrends, trendsResult, isL
 
             {isLoading && (
                 <div className="flex items-center justify-center h-48">
-                    <LoadingIcon className="w-8 h-8 text-brand-primary" />
+                    <LoadingIcon className="w-8 h-8 text-primary" />
                 </div>
             )}
             
@@ -47,19 +46,19 @@ export const Trends: React.FC<TrendsProps> = ({ onFetchTrends, trendsResult, isL
                     <div className="space-y-4 mb-6">
                         {trendsResult.trends.length > 0 ? (
                             trendsResult.trends.map((trend, index) => (
-                                <div key={index} className="bg-brand-surface/70 border border-brand-border p-3 rounded-md">
-                                    <h3 className="font-semibold text-brand-primary">{trend.title}</h3>
-                                    <p className="text-brand-text-secondary mt-1 text-sm">{trend.summary}</p>
+                                <div key={index} className="bg-surface-secondary p-3 rounded-md">
+                                    <h3 className="font-semibold text-primary">{trend.title}</h3>
+                                    <p className="text-text-secondary mt-1 text-sm">{trend.summary}</p>
                                 </div>
                             ))
                         ) : (
-                           <p className="text-brand-text-secondary text-sm">Could not identify specific trends, but check out the latest sources below for ideas.</p>
+                           <p className="text-text-tertiary text-sm">Could not identify specific trends, but check out the latest sources below for ideas.</p>
                         )}
                     </div>
                     
                     {trendsResult.sources.length > 0 && (
                         <div>
-                            <h4 className="font-semibold text-brand-text-primary mb-2">Sources</h4>
+                            <h4 className="font-semibold text-text-primary mb-2">Sources</h4>
                             <ul className="space-y-2">
                                 {trendsResult.sources.map((source, index) => (
                                     <li key={index}>
@@ -67,7 +66,7 @@ export const Trends: React.FC<TrendsProps> = ({ onFetchTrends, trendsResult, isL
                                             href={source.uri} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            className="text-sm text-brand-text-secondary hover:text-brand-primary hover:underline truncate block"
+                                            className="text-sm text-text-tertiary hover:text-primary hover:underline truncate block"
                                             title={source.uri}
                                         >
                                             - {source.title || source.uri}
@@ -81,7 +80,7 @@ export const Trends: React.FC<TrendsProps> = ({ onFetchTrends, trendsResult, isL
                     <button
                         onClick={onFetchTrends}
                         disabled={isLoading}
-                        className="w-full mt-6 flex items-center justify-center gap-2 bg-brand-secondary text-brand-text-primary font-semibold py-2 px-4 rounded-md hover:bg-brand-secondary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full mt-6 flex items-center justify-center gap-2 bg-secondary text-text-primary font-semibold py-2 px-4 rounded-md hover:bg-secondary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span>Refresh Trends</span>
                     </button>

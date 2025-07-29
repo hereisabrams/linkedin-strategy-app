@@ -152,7 +152,7 @@ const App: React.FC = () => {
   
   if (isLoading) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen text-white p-4 text-center">
+        <div className="flex flex-col items-center justify-center min-h-screen text-text-primary p-4 text-center">
             <LoadingIcon className="w-12 h-12" />
         </div>
     );
@@ -168,10 +168,10 @@ const App: React.FC = () => {
         return <ProfileInputScreen onSubmit={handleProfileSubmit} error={error} />;
       case 'loadingSuggestions':
         return (
-          <div className="flex flex-col items-center justify-center min-h-screen text-white p-4 text-center">
+          <div className="flex flex-col items-center justify-center min-h-screen text-text-primary p-4 text-center">
             <LoadingIcon className="w-12 h-12 mb-4" />
             <h2 className="text-2xl font-semibold">Analyzing Your Profile...</h2>
-            <p className="text-gray-400 mt-2">Deducing your industry, goals, and audience.</p>
+            <p className="text-text-tertiary mt-2">Deducing your industry, goals, and audience.</p>
           </div>
         );
       case 'onboardingReview':
@@ -183,10 +183,10 @@ const App: React.FC = () => {
                  />;
       case 'loadingStrategy':
         return (
-          <div className="flex flex-col items-center justify-center min-h-screen text-white p-4 text-center">
+          <div className="flex flex-col items-center justify-center min-h-screen text-text-primary p-4 text-center">
             <LoadingIcon className="w-12 h-12 mb-4" />
             <h2 className="text-2xl font-semibold">Crafting Your Full Strategy...</h2>
-            <p className="text-gray-400 mt-2">Personalizing your LinkedIn blueprint.</p>
+            <p className="text-text-tertiary mt-2">Personalizing your LinkedIn blueprint.</p>
           </div>
         );
       case 'dashboard':
@@ -209,7 +209,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-dark font-sans text-white">
+    <div className="min-h-screen bg-background font-sans text-text-primary">
       {renderContent()}
     </div>
   );
