@@ -95,7 +95,6 @@ const App: React.FC = () => {
       if (window.confirm("Are you sure you want to start over? This will clear your current strategy and all related data.")) {
         if (user) {
             localStorage.removeItem(`linkedin_strategy_${user.email}`);
-            localStorage.removeItem(`analysis_${user.email}`);
             localStorage.removeItem(`scheduled_posts_${user.email}`);
             localStorage.removeItem(`lastFollowVisit_${user.email}`);
             localStorage.removeItem(`followCount_${user.email}`);

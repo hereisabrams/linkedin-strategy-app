@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { OnboardingData, Strategy, PostIdea, ProfileAnalysisResult, PostingSuggestion, ScheduleSuggestion, TrendsResult, Trend } from '../types';
+import type { OnboardingData, Strategy, PostIdea, PostingSuggestion, ScheduleSuggestion, TrendsResult, Trend, PostDraft, CommentReplySuggestion } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -63,7 +63,7 @@ const strategySchema = {
                 type: Type.OBJECT,
                 properties: {
                     title: { type: Type.STRING, description: "A catchy title for the post idea." },
-                    description: { type: Type.STRING, description: "A brief one-sentence description of what the post would cover." }
+                    description: { type: Type.STRING, description: "A brief one-sentence description of what the post would be about." }
                 },
                 required: ["title", "description"]
             }
@@ -129,64 +129,27 @@ export const generatePost = async (postIdea: PostIdea, strategy: Strategy): Prom
     return response.text;
 };
 
-const profileAnalysisSchema = {
-    type: Type.OBJECT,
-    properties: {
-        overallImpression: {
-            type: Type.STRING,
-            description: "A brief, encouraging summary of the profile's strengths and potential."
-        },
-        feedback: {
-            type: Type.ARRAY,
-            description: "A list of actionable feedback points categorized for clarity.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    category: {
-                        type: Type.STRING,
-                        description: "The area of feedback, e.g., 'Clarity & Impact', 'Call to Action', 'Keyword Optimization'."
-                    },
-                    feedback: {
-                        type: Type.STRING,
-                        description: "Specific, constructive advice for this category."
-                    }
-                },
-                required: ["category", "feedback"]
-            }
-        }
-    },
-    required: ["overallImpression", "feedback"]
-};
-
-
-export const analyzeProfile = async (aboutText: string): Promise<ProfileAnalysisResult> => {
+export const generatePostFromDraft = async (draft: PostDraft, strategy: Strategy): Promise<string> => {
     const prompt = `
-        You are a top-tier LinkedIn career coach and copywriter. Analyze the following LinkedIn "About" section. Provide an overall impression and specific, actionable feedback broken down into categories like 'Clarity & Impact', 'Call to Action', and 'Keyword Optimization'. The feedback should be constructive and help the user improve their profile to attract their target audience.
+        You are an expert LinkedIn copywriter. Your task is to take a user's draft and expand it into a complete, engaging LinkedIn post. The post should be ready to be copied and pasted.
 
-        User's "About" Section:
-        ---
-        ${aboutText}
-        ---
+        The user's overall strategy is:
+        - Target Audience: ${strategy.targetAudience}
+        - Tone of Voice: ${strategy.tone}
 
-        Generate a JSON object that follows the provided schema.
+        The user's draft is:
+        - Title: "${draft.title}"
+        - Key Points / Draft Content: "${draft.keyPoints}"
+
+        Please write the full post now based on the draft. Flesh it out, ensure it flows well, and add relevant details. Use paragraphs, bullet points if appropriate, and 3-5 relevant hashtags at the end. Do not include any preamble like "Here is the post:". Just provide the post content itself.
     `;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: profileAnalysisSchema,
-        }
+        contents: prompt
     });
-    
-    const jsonText = response.text.trim();
-    try {
-        return JSON.parse(jsonText) as ProfileAnalysisResult;
-    } catch (e) {
-        console.error("Failed to parse JSON from Gemini for profile analysis:", jsonText);
-        throw new Error("Received an invalid format from the AI for profile analysis. Please try again.");
-    }
+
+    return response.text;
 };
 
 const postingSuggestionsSchema = {
@@ -397,4 +360,96 @@ For each of the 3 trends, provide a concise title and a one-sentence summary. Fo
     }
 
     return { trends, sources };
+};
+
+const commentRepliesSchema = {
+    type: Type.OBJECT,
+    properties: {
+        suggestions: {
+            type: Type.ARRAY,
+            description: "A list of 3 distinct reply suggestions.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    style: { type: Type.STRING, description: "The style of the reply, e.g., 'Insightful', 'Friendly & Appreciative', 'Question-based'." },
+                    reply: { type: Type.STRING, description: "The suggested reply text." }
+                },
+                required: ["style", "reply"]
+            }
+        }
+    },
+    required: ["suggestions"]
+};
+
+export const generateCommentReplies = async (postContent: string, comment: string, strategy: Strategy): Promise<CommentReplySuggestion[]> => {
+    const prompt = `
+        You are a LinkedIn engagement expert. Your goal is to help a user reply to a comment on their post in a way that fosters conversation.
+
+        User's Strategy:
+        - Tone of Voice: ${strategy.tone}
+        - Target Audience: ${strategy.targetAudience}
+
+        The Original Post:
+        ---
+        ${postContent}
+        ---
+
+        The Comment Received:
+        ---
+        ${comment}
+        ---
+
+        Please generate 3 distinct, smart, and engaging reply suggestions. The replies should match the user's tone. Each suggestion should have a different angle (e.g., one that adds more value, one that shows appreciation, one that asks a follow-up question).
+
+        Generate a JSON object that follows the provided schema.
+    `;
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: commentRepliesSchema,
+        }
+    });
+
+    const jsonText = response.text.trim();
+    try {
+        const parsedJson = JSON.parse(jsonText);
+        return parsedJson.suggestions as CommentReplySuggestion[];
+    } catch (e) {
+        console.error("Failed to parse JSON from Gemini for comment replies:", jsonText);
+        throw new Error("Received an invalid format from the AI. Please try again.");
+    }
+};
+
+
+export const generateDM = async (connectionProfile: string, strategy: Strategy): Promise<string> => {
+    const prompt = `
+        You are a networking expert specializing in crafting personalized, non-salesy LinkedIn direct messages. Your task is to draft a friendly, genuine opening message to a new connection.
+
+        Here is your user's profile context (who you are):
+        - User's Strategy Summary: ${strategy.summary}
+        - User's Key Topics: ${strategy.contentPillars.join(', ')}
+
+        Here is the new connection's "About" section:
+        ---
+        ${connectionProfile}
+        ---
+
+        Draft a short, personalized DM. The message should:
+        1. Reference something specific and interesting from their profile to show you've actually read it.
+        2. Briefly and humbly connect it to one of your own interests or experiences.
+        3. End with an open-ended question to encourage a reply and start a real conversation.
+        4. Be friendly and avoid any sales pitches or requests.
+
+        Just provide the DM text itself, with no preamble.
+    `;
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+    });
+
+    return response.text;
 };

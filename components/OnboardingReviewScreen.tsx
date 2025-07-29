@@ -1,7 +1,8 @@
+"use client";
 
 import React, { useState, useEffect } from 'react';
-import type { OnboardingData } from '../types';
-import { LoadingIcon } from '../constants';
+import type { OnboardingData } from '@/types';
+import { LoadingIcon } from '@/constants';
 
 interface OnboardingReviewScreenProps {
   suggestions: OnboardingData | null;
@@ -12,7 +13,7 @@ interface OnboardingReviewScreenProps {
 
 const InputField: React.FC<{ id: keyof OnboardingData; label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string }> = ({ id, label, value, onChange, placeholder }) => (
     <div>
-        <label htmlFor={id} className="block text-sm font-medium leading-6 text-gray-200">{label}</label>
+        <label htmlFor={id} className="block text-sm font-medium leading-6 text-brand-text-secondary">{label}</label>
         <div className="mt-2">
             <input
                 type="text"
@@ -20,7 +21,7 @@ const InputField: React.FC<{ id: keyof OnboardingData; label: string; value: str
                 id={id}
                 value={value}
                 onChange={onChange}
-                className="block w-full rounded-md border-0 bg-white/5 p-2.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-brand-blue sm:text-sm sm:leading-6 transition"
+                className="block w-full rounded-md border-brand-border bg-brand-surface p-3 text-brand-text-primary shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-inset focus:ring-brand-primary sm:text-sm sm:leading-6 transition"
                 placeholder={placeholder}
                 required
             />
@@ -30,14 +31,14 @@ const InputField: React.FC<{ id: keyof OnboardingData; label: string; value: str
 
 const SelectField: React.FC<{ id: keyof OnboardingData; label: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; children: React.ReactNode }> = ({ id, label, value, onChange, children }) => (
     <div>
-        <label htmlFor={id} className="block text-sm font-medium leading-6 text-gray-200">{label}</label>
+        <label htmlFor={id} className="block text-sm font-medium leading-6 text-brand-text-secondary">{label}</label>
         <div className="mt-2">
             <select
                 id={id}
                 name={id}
                 value={value}
                 onChange={onChange}
-                className="block w-full rounded-md border-0 bg-white/5 py-2.5 pl-3 pr-10 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-brand-blue sm:text-sm sm:leading-6 [&>option]:text-black"
+                className="block w-full rounded-md border-brand-border bg-brand-surface py-3 pl-3 pr-10 text-brand-text-primary ring-1 ring-transparent focus:ring-2 focus:ring-inset focus:ring-brand-primary sm:text-sm sm:leading-6 [&>option]:text-black"
                 required
             >
                 {children}
@@ -71,9 +72,9 @@ export const OnboardingReviewScreen: React.FC<OnboardingReviewScreenProps> = ({ 
 
   if (!formData) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen text-white p-4 text-center">
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center text-brand-text-primary">
             <p>No suggestions found. Please go back and try again.</p>
-             <button onClick={onBack} className="mt-4 rounded-md bg-brand-blue px-4 py-2 text-sm font-semibold text-white">
+             <button onClick={onBack} className="mt-4 rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white">
                 Go Back
             </button>
         </div>
@@ -84,12 +85,12 @@ export const OnboardingReviewScreen: React.FC<OnboardingReviewScreenProps> = ({ 
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-2xl space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">Review Your AI Suggestions</h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-brand-text-primary">Review Your AI Suggestions</h2>
+          <p className="mt-2 text-center text-md text-brand-text-secondary">
             We've created a starting point. Feel free to edit any field to perfectly match your vision.
           </p>
         </div>
-        <form className="mt-8 space-y-6 bg-gray-900/50 p-8 rounded-lg shadow-2xl backdrop-blur-sm" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6 bg-brand-card border border-brand-border p-8 rounded-lg shadow-2xl" onSubmit={handleSubmit}>
             <InputField id="industry" label="Your primary industry or field" value={formData.industry} onChange={handleChange} placeholder="e.g., SaaS, Healthcare, FinTech" />
             <InputField id="targetAudience" label="Your target audience" value={formData.targetAudience} onChange={handleChange} placeholder="e.g., CTOs at early-stage startups" />
             <SelectField id="goal" label="Your main goal on LinkedIn" value={formData.goal} onChange={handleChange}>
@@ -113,14 +114,14 @@ export const OnboardingReviewScreen: React.FC<OnboardingReviewScreenProps> = ({ 
                 type="button"
                 onClick={onBack}
                 disabled={isLoading}
-                className="flex w-full justify-center rounded-md bg-slate-600 px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 disabled:opacity-50 transition-colors"
+                className="flex w-full justify-center rounded-md bg-brand-secondary hover:bg-brand-secondary-hover px-3 py-3 text-sm font-semibold leading-6 text-brand-text-primary shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-border disabled:opacity-50 transition-colors"
                 >
                 Back
                 </button>
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex w-full justify-center rounded-md bg-brand-blue px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex w-full justify-center items-center rounded-md bg-brand-primary px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-brand-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     {isLoading ? <LoadingIcon className="w-5 h-5" /> : 'Create My Full Strategy'}
                 </button>

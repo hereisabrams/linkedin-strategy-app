@@ -1,4 +1,5 @@
 
+
 export interface User {
   email: string;
   name: string;
@@ -18,6 +19,11 @@ export interface PostIdea {
   description: string;
 }
 
+export interface PostDraft {
+  title: string;
+  keyPoints: string;
+}
+
 export interface Strategy {
   summary: string;
   contentPillars: string[];
@@ -25,18 +31,6 @@ export interface Strategy {
   targetAudience: string;
   postIdeas: PostIdea[];
 }
-
-// New types for Profile Analysis
-export interface AnalysisCategory {
-  category: string; // e.g., "Clarity & Impact", "Call to Action"
-  feedback: string; // The detailed feedback for this category
-}
-
-export interface ProfileAnalysisResult {
-  overallImpression: string;
-  feedback: AnalysisCategory[];
-}
-
 
 // New types for Calendar and Scheduling
 export interface PostingSuggestion {
@@ -64,10 +58,23 @@ export interface Trend {
 
 export interface TrendSource {
   uri: string;
-  title: string;
+  title:string;
 }
 
 export interface TrendsResult {
   trends: Trend[];
   sources: TrendSource[];
+}
+
+// New types for Assistants
+export interface CommentReplySuggestion {
+  style: string; // e.g., "Insightful", "Friendly", "Question-based"
+  reply: string;
+}
+
+// New type for scraping
+export interface ScrapedProfileData {
+  name: string;
+  headline: string;
+  about: string;
 }

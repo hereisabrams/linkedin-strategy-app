@@ -1,37 +1,23 @@
+"use client";
 
 import React, { useState } from 'react';
-import { LoadingIcon, SparklesIcon } from '../constants';
+import { SparklesIcon } from '@/constants';
 
 interface ProfileInputScreenProps {
-  onSubmit: (profileText: string) => void;
+  onSubmit: (url: string) => void;
   error: string | null;
 }
 
 export const ProfileInputScreen: React.FC<ProfileInputScreenProps> = ({ onSubmit, error }) => {
   const [linkedInUrl, setLinkedInUrl] = useState('');
-  const [urlError, setUrlError] = useState('');
-  const [showAboutInput, setShowAboutInput] = useState(false);
-  
-  const [profileText, setProfileText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleUrlSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setUrlError('');
-    // Simple regex to validate a linkedin profile URL
     const linkedInRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=]+$/;
     if (linkedInRegex.test(linkedInUrl)) {
-      setShowAboutInput(true);
+      onSubmit(linkedInUrl);
     } else {
-      setUrlError('Please enter a valid LinkedIn profile URL (e.g., https://linkedin.com/in/yourname).');
-    }
-  };
-
-  const handleProfileSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (profileText.trim()) {
-      setIsLoading(true);
-      onSubmit(profileText);
+        alert('Please enter a valid LinkedIn profile URL (e.g., https://linkedin.com/in/yourname).');
     }
   };
 
@@ -39,20 +25,16 @@ export const ProfileInputScreen: React.FC<ProfileInputScreenProps> = ({ onSubmit
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-2xl space-y-8">
         <div>
-          <SparklesIcon className="w-12 h-12 mx-auto text-brand-blue"/>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
-            {showAboutInput ? "Great! Let's import your summary" : "Let's Start with Your Profile"}
+          <SparklesIcon className="w-12 h-12 mx-auto text-brand-primary"/>
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-brand-text-primary">
+            Let's Start with Your Profile
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
-             {showAboutInput 
-                ? "To protect your privacy, we need you to copy/paste your 'About' section."
-                : "Enter your LinkedIn profile URL to begin."
-             }
+          <p className="mt-2 text-center text-md text-brand-text-secondary">
+             Enter your public LinkedIn profile URL to begin.
           </p>
         </div>
         
-        {!showAboutInput ? (
-          <form className="mt-8 space-y-6 bg-gray-900/50 p-8 rounded-lg shadow-2xl backdrop-blur-sm" onSubmit={handleUrlSubmit}>
+        <form className="mt-8 space-y-6 bg-brand-card border border-brand-border p-8 rounded-lg shadow-2xl" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="linkedInUrl" className="sr-only">LinkedIn Profile URL</label>
               <input
@@ -63,63 +45,21 @@ export const ProfileInputScreen: React.FC<ProfileInputScreenProps> = ({ onSubmit
                 required
                 value={linkedInUrl}
                 onChange={(e) => setLinkedInUrl(e.target.value)}
-                className="block w-full rounded-md border-0 bg-white/5 p-2.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-brand-blue sm:text-sm sm:leading-6 transition"
+                className="block w-full rounded-md border-brand-border bg-brand-surface p-3 text-brand-text-primary shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-inset focus:ring-brand-primary sm:text-sm sm:leading-6 transition"
                 placeholder="https://www.linkedin.com/in/your-name"
               />
             </div>
-            {urlError && <p className="text-sm text-red-400 mt-2">{urlError}</p>}
+            {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
             <div className="pt-2">
               <button
                 type="submit"
-                className="flex w-full justify-center rounded-md bg-brand-blue px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue transition-colors"
+                className="flex w-full justify-center items-center gap-2 rounded-md bg-brand-primary px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-brand-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary transition-colors"
               >
-                Continue
+                <SparklesIcon className="w-5 h-5" />
+                Scrape Profile & Continue
               </button>
             </div>
-          </form>
-        ) : (
-          <form className="mt-8 space-y-6 bg-gray-900/50 p-8 rounded-lg shadow-2xl backdrop-blur-sm" onSubmit={handleProfileSubmit}>
-              <div className="text-sm text-gray-300 bg-slate-800 p-4 rounded-md space-y-2">
-                  <p className="font-semibold">Just 3 quick steps:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>
-                      Click this link to open your profile: {' '}
-                      <a href={linkedInUrl} target="_blank" rel="noopener noreferrer" className="text-brand-blue hover:underline font-semibold">
-                        View Profile
-                      </a>
-                    </li>
-                    <li>Find and copy the text in your "About" section.</li>
-                    <li>Paste it into the text box below.</li>
-                  </ol>
-              </div>
-              <div>
-                 <label htmlFor="profileText" className="sr-only">Your LinkedIn "About" Section</label>
-                <textarea
-                    id="profileText"
-                    name="profileText"
-                    rows={10}
-                    value={profileText}
-                    onChange={(e) => setProfileText(e.target.value)}
-                    className="block w-full rounded-md border-0 bg-white/5 p-2.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-brand-blue sm:text-sm sm:leading-6 transition"
-                    placeholder="Go to your profile, copy your 'About' section, and paste it here..."
-                    required
-                />
-            </div>
-           
-            {error && <p className="text-sm text-red-400">{error}</p>}
-
-            <div>
-                <button
-                    type="submit"
-                    disabled={isLoading || !profileText.trim()}
-                    className="flex w-full justify-center items-center gap-2 rounded-md bg-brand-blue px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    {isLoading ? <LoadingIcon className="w-5 h-5" /> : <SparklesIcon className="w-5 h-5" />}
-                    {isLoading ? 'Analyzing...' : 'Analyze & Get Suggestions'}
-                </button>
-            </div>
         </form>
-        )}
       </div>
     </div>
   );

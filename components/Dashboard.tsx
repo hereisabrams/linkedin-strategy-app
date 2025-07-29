@@ -1,16 +1,21 @@
+"use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { Strategy, PostIdea, User, ProfileAnalysisResult, ScheduledPost, PostingSuggestion, ScheduleSuggestion, TrendsResult } from '../types';
-import { ContentIdeas } from './ContentIdeas';
-import { StrategyCard } from './StrategyCard';
-import { TaskTracker } from './TaskTracker';
-import { generatePost, analyzeProfile, getPostingSuggestions, getScheduleSuggestion, regeneratePostIdeas, fetchLinkedInTrends } from '../services/geminiService';
-import { PostModal } from './PostModal';
-import { CalendarIcon, LoadingIcon, SparklesIcon } from '../constants';
-import { CalendarView } from './CalendarView';
-import { ProfileAnalyzer } from './ProfileAnalyzer';
-import { SchedulePostModal } from './SchedulePostModal';
-import { Trends } from './Trends';
+import type { Strategy, PostIdea, User, ScheduledPost, PostingSuggestion, ScheduleSuggestion, TrendsResult, PostDraft, CommentReplySuggestion } from '@/types';
+import { ContentIdeas } from '@/components/ContentIdeas';
+import { StrategyCard } from '@/components/StrategyCard';
+import { TaskTracker } from '@/components/TaskTracker';
+import { generatePost, getPostingSuggestions, getScheduleSuggestion, regeneratePostIdeas, fetchLinkedInTrends, generatePostFromDraft, generateCommentReplies, generateDM } from '@/services/apiService';
+import { PostModal } from '@/components/PostModal';
+import { CalendarIcon, ChatBubbleLeftRightIcon, LoadingIcon, SparklesIcon } from '@/constants';
+import { CalendarView } from '@/components/CalendarView';
+import { SchedulePostModal } from '@/components/SchedulePostModal';
+import { Trends } from '@/components/Trends';
+import { ViewPostModal } from '@/components/ViewPostModal';
+import { PostFromDraft } from '@/components/PostFromDraft';
+import { CommentAssistant } from '@/components/CommentAssistant';
+import { DMAssistant } from '@/components/DMAssistant';
+import { AdBanner } from '@/components/AdBanner';
 
 interface DashboardProps {
   strategy: Strategy;
@@ -21,7 +26,7 @@ interface DashboardProps {
   onLoginRequest: () => void;
 }
 
-type ActiveTab = 'strategy' | 'calendar';
+type ActiveTab = 'strategy' | 'calendar' | 'assistants';
 
 export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, onLogout, onStartOver, onLoginRequest }) => {
   const [currentStrategy, setCurrentStrategy] = useState<Strategy>(strategy);
@@ -33,14 +38,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isReloadingIdeas, setIsReloadingIdeas] = useState(false);
+  const [modalTitle, setModalTitle] = useState<string>('');
 
-  // Profile Analysis State
-  const [analysis, setAnalysis] = useState<ProfileAnalysisResult | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Scheduling State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [postToSchedule, setPostToSchedule] = useState<{title: string, content: string} | null>(null);
+  const [viewedPost, setViewedPost] = useState<ScheduledPost | null>(null);
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
   const [postingSuggestions, setPostingSuggestions] = useState<PostingSuggestion[]>([]);
   const [scheduleSuggestion, setScheduleSuggestion] = useState<ScheduleSuggestion | null>(null);
@@ -49,20 +54,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
   const [trendsResult, setTrendsResult] = useState<TrendsResult | null>(null);
   const [isFetchingTrends, setIsFetchingTrends] = useState(false);
 
+  // Assistants State
+  const [commentReplySuggestions, setCommentReplySuggestions] = useState<CommentReplySuggestion[] | null>(null);
+  const [isGeneratingReplies, setIsGeneratingReplies] = useState(false);
+  const [dmDraft, setDmDraft] = useState<string | null>(null);
+  const [isGeneratingDM, setIsGeneratingDM] = useState(false);
+
 
   const userEmail = user.email;
 
   // Load data from localStorage and fetch suggestions on mount
   useEffect(() => {
     try {
-      const storedAnalysis = localStorage.getItem(`analysis_${userEmail}`);
-      if (storedAnalysis) setAnalysis(JSON.parse(storedAnalysis));
-
       const storedScheduledPosts = localStorage.getItem(`scheduled_posts_${userEmail}`);
       if (storedScheduledPosts) setScheduledPosts(JSON.parse(storedScheduledPosts));
       
       // Fetch suggestions from AI
-      getPostingSuggestions(currentStrategy).then(setPostingSuggestions).catch(err => console.error(err));
+      getPostingSuggestions(currentStrategy).then(res => setPostingSuggestions(res.suggestions)).catch(err => console.error(err));
       getScheduleSuggestion(currentStrategy).then(setScheduleSuggestion).catch(err => console.error(err));
       
     } catch(e) {
@@ -92,7 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
             const intervals = [
                 { time: 24 * 60 * 60 * 1000, label: '24 hours' },
                 { time: 60 * 60 * 1000, label: '1 hour' },
-                { time: 5 * 60 * 1000, label: '5 minutes' },
+                { time: 10 * 60 * 1000, label: '10 minutes' },
             ];
             
             intervals.forEach(interval => {
@@ -101,7 +109,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
                     const timeoutId = window.setTimeout(() => {
                         new Notification('LinkedIn Post Reminder', {
                             body: `Your post "${post.title}" is scheduled in ${interval.label}.`,
-                            icon: '/favicon.svg'
+                            icon: '/favicon.ico'
                         });
                     }, timeoutDelay);
                     timeouts.push(timeoutId);
@@ -125,7 +133,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
     setIsReloadingIdeas(true);
     setScheduleSuggestion(null); // Clear old suggestion
     try {
-      const newIdeas = await regeneratePostIdeas(currentStrategy);
+      const { postIdeas: newIdeas } = await regeneratePostIdeas(currentStrategy);
       const newStrategy = { ...currentStrategy, postIdeas: newIdeas };
       setCurrentStrategy(newStrategy);
       localStorage.setItem(`linkedin_strategy_${user.email}`, JSON.stringify(newStrategy));
@@ -141,11 +149,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
 
   const handleGeneratePost = useCallback(async (idea: PostIdea) => {
     setSelectedPost(idea);
+    setModalTitle(idea.title);
     setIsGenerating(true);
     setGeneratedContent('');
     setIsPostModalOpen(true);
     try {
-      const content = await generatePost(idea, currentStrategy);
+      const { content } = await generatePost({ postIdea: idea, strategy: currentStrategy });
       setGeneratedContent(content);
     } catch (error) {
       console.error("Failed to generate post:", error);
@@ -155,19 +164,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
     }
   }, [currentStrategy]);
 
-  const handleAnalyzeProfile = useCallback(async (aboutText: string) => {
-    setIsAnalyzing(true);
+  const handleGeneratePostFromDraft = useCallback(async (draft: PostDraft) => {
+    setSelectedPost(null);
+    setModalTitle(draft.title);
+    setIsGenerating(true);
+    setGeneratedContent('');
+    setIsPostModalOpen(true);
     try {
-      const result = await analyzeProfile(aboutText);
-      setAnalysis(result);
-      localStorage.setItem(`analysis_${userEmail}`, JSON.stringify(result));
-    } catch(error) {
-      console.error("Failed to analyze profile", error);
-      alert("There was an error analyzing your profile. Please try again.");
+        const { content } = await generatePostFromDraft({ draft, strategy: currentStrategy });
+        setGeneratedContent(content);
+    } catch (error) {
+        console.error("Failed to generate post from draft:", error);
+        setGeneratedContent("Sorry, we couldn't generate the post from your draft. Please try again.");
     } finally {
-      setIsAnalyzing(false);
+        setIsGenerating(false);
     }
-  }, [userEmail]);
+  }, [currentStrategy]);
 
   const handleSchedulePost = (date: string) => {
     // Request notification permission on first schedule
@@ -189,7 +201,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
     closePostModal();
   };
 
-    const handleFetchTrends = useCallback(async () => {
+  const handleDeletePost = (postId: string) => {
+    if (window.confirm("Are you sure you want to delete this scheduled post?")) {
+        const updatedPosts = scheduledPosts.filter(p => p.id !== postId);
+        setScheduledPosts(updatedPosts);
+        localStorage.setItem(`scheduled_posts_${userEmail}`, JSON.stringify(updatedPosts));
+        closeViewModal();
+    }
+  };
+
+  const handleViewPost = (post: ScheduledPost) => {
+      setViewedPost(post);
+      setIsViewModalOpen(true);
+  };
+
+  const handleFetchTrends = useCallback(async () => {
     setIsFetchingTrends(true);
     try {
       const result = await fetchLinkedInTrends(currentStrategy);
@@ -202,9 +228,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
     }
   }, [currentStrategy]);
 
+  const handleGenerateReplies = useCallback(async (postContent: string, comment: string) => {
+    setIsGeneratingReplies(true);
+    setCommentReplySuggestions(null);
+    try {
+      const result = await generateCommentReplies({postContent, comment, strategy: currentStrategy});
+      setCommentReplySuggestions(result.suggestions);
+    } catch (error) {
+      console.error("Failed to generate replies:", error);
+      alert("Sorry, we couldn't generate comment replies. Please try again.");
+    } finally {
+      setIsGeneratingReplies(false);
+    }
+  }, [currentStrategy]);
+  
+  const handleGenerateDM = useCallback(async (profileText: string) => {
+    setIsGeneratingDM(true);
+    setDmDraft(null);
+    try {
+      const { content } = await generateDM({ connectionProfile: profileText, strategy: currentStrategy });
+      setDmDraft(content);
+    } catch (error) {
+      console.error("Failed to generate DM:", error);
+      alert("Sorry, we couldn't generate the DM draft. Please try again.");
+    } finally {
+      setIsGeneratingDM(false);
+    }
+  }, [currentStrategy]);
+
   const openScheduleModal = () => {
-    if (!selectedPost || !generatedContent) return;
-    setPostToSchedule({ title: selectedPost.title, content: generatedContent });
+    if (!modalTitle || !generatedContent) return;
+    setPostToSchedule({ title: modalTitle, content: generatedContent });
     setIsScheduleModalOpen(true);
   };
 
@@ -212,27 +266,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
     setIsScheduleModalOpen(false);
     setPostToSchedule(null);
   };
+  
+  const closeViewModal = () => {
+      setIsViewModalOpen(false);
+      setViewedPost(null);
+  }
 
   const closePostModal = () => {
     setIsPostModalOpen(false);
     setGeneratedContent('');
     setSelectedPost(null);
+    setModalTitle('');
   };
 
   return (
     <>
-      <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-brand-background text-brand-text-primary p-4 sm:p-6 lg:p-8">
         <header className="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Your LinkedIn Dashboard</h1>
-            <p className="text-gray-400 mt-1">
+            <p className="text-brand-text-secondary mt-1">
               {isGuest ? 'Welcome, Guest!' : `Welcome back, ${(user.name || '').split(' ')[0]}!`}
             </p>
           </div>
           <div className="flex items-center gap-4">
              <button
                 onClick={onStartOver}
-                className="bg-red-800 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-md transition-colors text-sm"
+                className="bg-brand-danger hover:bg-brand-danger-hover text-white font-semibold py-2 px-3 rounded-md transition-colors text-sm"
                 title="This will clear your current strategy and all related data."
              >
                 Start Over
@@ -240,7 +300,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
             {isGuest ? (
               <button
                 onClick={onLoginRequest}
-                className="bg-brand-blue hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-md transition-colors"
+                className="bg-brand-primary hover:bg-brand-primary-hover text-white font-semibold py-2 px-4 rounded-md transition-colors"
               >
                 Sign In to Sync
               </button>
@@ -251,7 +311,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
                 )}
                 <button
                   onClick={onLogout}
-                  className="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-md transition-colors"
+                  className="bg-brand-secondary hover:bg-brand-secondary-hover text-brand-text-primary font-semibold py-2 px-4 rounded-md transition-colors"
                 >
                   Logout
                 </button>
@@ -261,12 +321,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
         </header>
 
         {/* Tabs */}
-        <div className="mb-8 border-b border-slate-700">
+        <div className="mb-8 border-b border-brand-border">
           <nav className="-mb-px flex space-x-6" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('strategy')}
               className={`${
-                activeTab === 'strategy' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500'
+                activeTab === 'strategy' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:border-brand-border'
               } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
               <SparklesIcon className="w-5 h-5"/>
@@ -275,11 +335,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
             <button
               onClick={() => setActiveTab('calendar')}
               className={`${
-                activeTab === 'calendar' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500'
+                activeTab === 'calendar' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:border-brand-border'
               } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
               <CalendarIcon className="w-5 h-5"/>
-              Analysis & Calendar
+              Content Calendar
+            </button>
+             <button
+              onClick={() => setActiveTab('assistants')}
+              className={`${
+                activeTab === 'assistants' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:border-brand-border'
+              } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+            >
+              <ChatBubbleLeftRightIcon className="w-5 h-5"/>
+              Assistants
             </button>
           </nav>
         </div>
@@ -289,6 +358,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 <StrategyCard summary={currentStrategy.summary} contentPillars={currentStrategy.contentPillars} tone={currentStrategy.tone} />
+                <PostFromDraft onGenerate={handleGeneratePostFromDraft} isLoading={isGenerating && !selectedPost} />
                 <ContentIdeas 
                   ideas={currentStrategy.postIdeas} 
                   onGeneratePost={handleGeneratePost} 
@@ -300,6 +370,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
                 />
               </div>
               <div className="lg:col-span-1 space-y-8">
+                <AdBanner />
                 <TaskTracker user={user} />
                 <Trends
                   onFetchTrends={handleFetchTrends}
@@ -310,13 +381,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
             </div>
           )}
           {activeTab === 'calendar' && (
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
-                    <CalendarView scheduledPosts={scheduledPosts} postingSuggestions={postingSuggestions} />
-                </div>
-                 <div className="lg:col-span-1">
-                    <ProfileAnalyzer onAnalyze={handleAnalyzeProfile} analysisResult={analysis} isLoading={isAnalyzing} />
-                 </div>
+             <div className="grid grid-cols-1 gap-8">
+                <CalendarView 
+                    scheduledPosts={scheduledPosts} 
+                    postingSuggestions={postingSuggestions}
+                    onViewPost={handleViewPost}
+                    onDeletePost={handleDeletePost}
+                />
+            </div>
+          )}
+          {activeTab === 'assistants' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              <CommentAssistant 
+                onGenerate={handleGenerateReplies}
+                suggestions={commentReplySuggestions}
+                isLoading={isGeneratingReplies}
+              />
+              <DMAssistant 
+                onGenerate={handleGenerateDM}
+                draft={dmDraft}
+                isLoading={isGeneratingDM}
+              />
             </div>
           )}
         </main>
@@ -328,7 +413,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
           onClose={closePostModal}
           isLoading={isGenerating}
           content={generatedContent}
-          title={selectedPost?.title || "Generated Post"}
+          title={modalTitle || "Generated Post"}
           onSchedule={openScheduleModal}
         />
       )}
@@ -337,6 +422,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ strategy, user, isGuest, o
             isOpen={isScheduleModalOpen}
             onClose={closeScheduleModal}
             onSchedule={handleSchedulePost}
+        />
+      )}
+      {isViewModalOpen && viewedPost && (
+        <ViewPostModal
+            isOpen={isViewModalOpen}
+            onClose={closeViewModal}
+            onDelete={handleDeletePost}
+            post={viewedPost}
         />
       )}
     </>
