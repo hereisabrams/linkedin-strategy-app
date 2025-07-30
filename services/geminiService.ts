@@ -109,7 +109,7 @@ export const generateStrategy = async (data: OnboardingData): Promise<Strategy> 
 
 export const generatePost = async (postIdea: PostIdea, strategy: Strategy): Promise<string> => {
     const prompt = `
-        You are an expert LinkedIn copywriter. Your task is to write a complete, engaging LinkedIn post. The post should be ready to be copied and pasted.
+        You are a world-class LinkedIn copywriter, an expert in creating viral, highly engaging content. Your task is to write a complete LinkedIn post that is ready to be copied and pasted.
 
         The user's overall strategy is:
         - Target Audience: ${strategy.targetAudience}
@@ -119,7 +119,18 @@ export const generatePost = async (postIdea: PostIdea, strategy: Strategy): Prom
         - Title: "${postIdea.title}"
         - More context: "${postIdea.description}"
 
-        Please write the post now. Use paragraphs, bullet points if appropriate, and 3-5 relevant hashtags at the end to make it readable and effective. Do not include any preamble like "Here is the post:". Just provide the post content itself.
+        Follow these CRUCIAL rules for a high-impact post:
+        1.  **Hook:** Start with a powerful, attention-grabbing first line to make people stop scrolling.
+        2.  **Brevity is Key:** Keep the post concise, ideally under 120 words. People scan on LinkedIn.
+        3.  **Readability:** Use short sentences and paragraphs (max 2 sentences each). Use ample white space to make it easy on the eyes.
+        4.  **Engage:** Tell a personal story, share a surprising insight, or ask a thought-provoking question early on.
+        5.  **Smart Emoji Use:** Sprinkle in 3-5 relevant emojis to add personality and break up the text. They should enhance the message, not clutter it.
+        6.  **Strong Call-to-Action (CTA):** End with a direct question to your audience to encourage comments and discussion.
+        7.  **Targeted Hashtags:** Finish with 3-5 specific, relevant hashtags.
+
+        **Output Format:**
+        - Do NOT include any preamble like "Here is the post:".
+        - Just provide the raw post content itself, formatted exactly as it should appear on LinkedIn.
     `;
 
     const response = await ai.models.generateContent({
@@ -132,7 +143,7 @@ export const generatePost = async (postIdea: PostIdea, strategy: Strategy): Prom
 
 export const generatePostFromDraft = async (draft: PostDraft, strategy: Strategy): Promise<string> => {
     const prompt = `
-        You are an expert LinkedIn copywriter. Your task is to take a user's draft and expand it into a complete, engaging LinkedIn post. The post should be ready to be copied and pasted.
+        You are a world-class LinkedIn copywriter, an expert in creating viral content. Your task is to take a user's draft and expand it into a complete, engaging LinkedIn post that is ready to be copied and pasted.
 
         The user's overall strategy is:
         - Target Audience: ${strategy.targetAudience}
@@ -142,7 +153,18 @@ export const generatePostFromDraft = async (draft: PostDraft, strategy: Strategy
         - Title: "${draft.title}"
         - Key Points / Draft Content: "${draft.keyPoints}"
 
-        Please write the full post now based on the draft. Flesh it out, ensure it flows well, and add relevant details. Use paragraphs, bullet points if appropriate, and 3-5 relevant hashtags at the end. Do not include any preamble like "Here is the post:". Just provide the post content itself.
+        Follow these CRUCIAL rules to transform the draft into a high-impact post:
+        1.  **Hook:** Craft a powerful, attention-grabbing first line based on the draft's title and key points.
+        2.  **Brevity is Key:** Keep the post concise, ideally under 120 words. Flesh out the key points into short, scannable paragraphs (1-2 sentences each) with plenty of white space.
+        3.  **Engage:** Use the draft's core message to tell a story or present a strong point of view.
+        4.  **Value:** Ensure the post provides a clear takeaway or valuable insight for the reader.
+        5.  **Smart Emoji Use:** Sprinkle in 3-5 relevant emojis to add personality and improve readability.
+        6.  **Strong Call-to-Action (CTA):** End with a clear question related to the topic to encourage comments.
+        7.  **Targeted Hashtags:** Finish with 3-5 relevant, targeted hashtags at the very end.
+        
+        **Output Format:**
+        - Do NOT include any preamble like "Here is the post:".
+        - Just provide the raw post content itself, formatted exactly as it should appear on LinkedIn.
     `;
 
     const response = await ai.models.generateContent({
@@ -168,7 +190,7 @@ const postingSuggestionsSchema = {
                     },
                     time: {
                         type: Type.STRING,
-                        description: "A specific time or time window, e.g., '9:00 AM - 11:00 AM EST'."
+                        description: "A specific time or time window, e.g., '9:00 AM - 11:00 AM'."
                     }
                 },
                 required: ["day", "time"]
@@ -178,15 +200,16 @@ const postingSuggestionsSchema = {
     required: ["suggestions"]
 }
 
-export const getPostingSuggestions = async (strategy: Strategy): Promise<PostingSuggestion[]> => {
+export const getPostingSuggestions = async (strategy: Strategy, timezone: string): Promise<PostingSuggestion[]> => {
     const prompt = `
         Based on general best practices for LinkedIn and the user's specific strategy, suggest 3-4 optimal days and times for them to post.
 
         User's Strategy:
-        - Industry: ${strategy.summary}
+        - Strategy Summary (includes industry/field): ${strategy.summary}
         - Target Audience: ${strategy.targetAudience}
+        - User's Timezone: ${timezone}
 
-        Consider when this audience is most likely to be active on LinkedIn. Provide the suggestions in a JSON object following the schema.
+        Consider when this audience is most likely to be active on LinkedIn. Provide the suggestions in a JSON object following the schema. The times in the 'time' field MUST be relevant to the user's provided timezone. For example, if the user is in 'Europe/London', suggest times in GMT/BST (e.g., "9:00 AM - 11:00 AM"). Do not add timezone abbreviations like EST or PST to the time string itself.
     `;
 
     const response = await ai.models.generateContent({

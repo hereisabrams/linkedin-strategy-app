@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { LoadingIcon, SparklesIcon } from '../constants';
 
 interface ProfileInputScreenProps {
-  onSubmit: (profileText: string) => void;
+  onSubmit: (profileText: string, linkedInUrl: string) => void;
   error: string | null;
 }
 
@@ -31,7 +31,7 @@ export const ProfileInputScreen: React.FC<ProfileInputScreenProps> = ({ onSubmit
     e.preventDefault();
     if (profileText.trim()) {
       setIsLoading(true);
-      onSubmit(profileText);
+      onSubmit(profileText, linkedInUrl);
     }
   };
 

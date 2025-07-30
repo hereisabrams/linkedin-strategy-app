@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CopyIcon, CheckIcon, TrashIcon, XMarkIcon } from '../constants';
+import { CopyIcon, CheckIcon, TrashIcon, XMarkIcon, PencilSquareIcon } from '../constants';
 import type { ScheduledPost } from '../types';
 
 interface ViewPostModalProps {
@@ -8,9 +8,10 @@ interface ViewPostModalProps {
   onClose: () => void;
   onDelete: (postId: string) => void;
   post: ScheduledPost;
+  onEdit: () => void;
 }
 
-export const ViewPostModal: React.FC<ViewPostModalProps> = ({ isOpen, onClose, onDelete, post }) => {
+export const ViewPostModal: React.FC<ViewPostModalProps> = ({ isOpen, onClose, onDelete, post, onEdit }) => {
   const [hasCopied, setHasCopied] = useState(false);
 
   useEffect(() => {
@@ -23,10 +24,6 @@ export const ViewPostModal: React.FC<ViewPostModalProps> = ({ isOpen, onClose, o
     navigator.clipboard.writeText(post.content);
     setHasCopied(true);
     setTimeout(() => setHasCopied(false), 2000);
-  };
-
-  const handleDelete = () => {
-    onDelete(post.id);
   };
   
   const formattedDate = new Date(post.scheduledDate).toLocaleString(undefined, {
@@ -59,19 +56,28 @@ export const ViewPostModal: React.FC<ViewPostModalProps> = ({ isOpen, onClose, o
         
         <div className="bg-background/50 p-4 rounded-b-lg flex justify-between items-center mt-auto">
              <button
-                onClick={handleDelete}
+                onClick={() => onDelete(post.id)}
                 className="flex items-center gap-2 bg-red-800 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition-colors"
             >
                 <TrashIcon className="w-5 h-5" />
                 Delete
             </button>
-            <button
-                onClick={handleCopy}
-                className="flex items-center gap-2 bg-primary text-white font-semibold py-2 px-4 rounded-md hover:bg-primary-hover transition-colors"
-            >
-                {hasCopied ? <CheckIcon className="w-5 h-5" /> : <CopyIcon className="w-5 h-5" />}
-                {hasCopied ? 'Copied!' : 'Copy Content'}
-            </button>
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={onEdit}
+                    className="flex items-center gap-2 bg-secondary text-text-primary font-semibold py-2 px-4 rounded-md hover:bg-secondary-hover transition-colors"
+                >
+                    <PencilSquareIcon className="w-5 h-5" />
+                    Edit
+                </button>
+                <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-2 bg-primary text-white font-semibold py-2 px-4 rounded-md hover:bg-primary-hover transition-colors"
+                >
+                    {hasCopied ? <CheckIcon className="w-5 h-5" /> : <CopyIcon className="w-5 h-5" />}
+                    {hasCopied ? 'Copied!' : 'Copy Content'}
+                </button>
+            </div>
         </div>
       </div>
     </div>

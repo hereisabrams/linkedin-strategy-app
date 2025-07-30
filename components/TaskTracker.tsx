@@ -50,7 +50,7 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ user }) => {
   const isComplete = followCount >= dailyFollowGoal;
 
   return (
-    <div className="bg-surface rounded-lg shadow-lg p-6 sticky top-8">
+    <div className="bg-surface rounded-lg shadow-lg p-6">
       <h2 className="text-2xl font-bold text-text-primary mb-4">Daily Growth Tasks</h2>
       <div className="space-y-6">
         <div>

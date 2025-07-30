@@ -32,6 +32,13 @@ export interface Strategy {
   postIdeas: PostIdea[];
 }
 
+export interface UserProfileData {
+  strategy: Strategy;
+  onboardingData: OnboardingData;
+  profileText: string;
+  linkedInUrl: string;
+}
+
 // New types for Calendar and Scheduling
 export interface PostingSuggestion {
     day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";

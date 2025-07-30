@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { OnboardingData, Strategy, User } from './types';
+import { OnboardingData, Strategy, User, UserProfileData } from './types';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { Dashboard } from './components/Dashboard';
 import { analyzeProfileForOnboarding, generateStrategy } from './services/geminiService';
@@ -16,68 +16,64 @@ const GUEST_USER: User = { email: GUEST_EMAIL, name: 'Guest', picture: undefined
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [step, setStep] = useState<AppStep>('profileInput');
-  const [strategy, setStrategy] = useState<Strategy | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [onboardingSuggestions, setOnboardingSuggestions] = useState<OnboardingData | null>(null);
+  const [onboardingState, setOnboardingState] = useState<{ linkedInUrl: string, profileText: string} | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRegeneratingStrategy, setIsRegeneratingStrategy] = useState(false);
+
 
   // Check for logged-in user or guest session on initial load
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('linkedin_strategy_user');
+      const profileKey = storedUser ? `linkedin_profile_${JSON.parse(storedUser).email}` : `linkedin_profile_${GUEST_EMAIL}`;
+      const storedProfile = localStorage.getItem(profileKey);
+
       if (storedUser) {
-        const userData: User = JSON.parse(storedUser);
-        const storedStrategy = localStorage.getItem(`linkedin_strategy_${userData.email}`);
-        setUser(userData);
-        if (storedStrategy) {
-          setStrategy(JSON.parse(storedStrategy));
-          setStep('dashboard');
-        } else {
-          setStep('profileInput');
-        }
-      } else {
-        const guestStrategy = localStorage.getItem(`linkedin_strategy_${GUEST_EMAIL}`);
-        if (guestStrategy) {
-          setUser(GUEST_USER);
-          setStrategy(JSON.parse(guestStrategy));
-          setStep('dashboard');
-        }
+        setUser(JSON.parse(storedUser));
+      } else if (storedProfile) {
+        setUser(GUEST_USER);
       }
+      
+      if (storedProfile) {
+        setUserProfile(JSON.parse(storedProfile));
+        setStep('dashboard');
+      }
+
     } catch (e) {
       console.error("Failed to parse from localStorage", e);
-      localStorage.removeItem('linkedin_strategy_user');
-      localStorage.removeItem(`linkedin_strategy_${GUEST_EMAIL}`);
+      localStorage.clear(); // Clear potentially corrupted data
     }
     setIsLoading(false);
   }, []);
 
   const handleLoginSuccess = (loggedInUser: User) => {
-    // Note: This flow replaces any guest data with the logged-in user's data.
-    // A more advanced implementation could offer to merge guest data.
     localStorage.setItem('linkedin_strategy_user', JSON.stringify(loggedInUser));
     setUser(loggedInUser);
     
     try {
-        const storedStrategy = localStorage.getItem(`linkedin_strategy_${loggedInUser.email}`);
-        if (storedStrategy) {
-            setStrategy(JSON.parse(storedStrategy));
+        const storedProfile = localStorage.getItem(`linkedin_profile_${loggedInUser.email}`);
+        if (storedProfile) {
+            setUserProfile(JSON.parse(storedProfile));
             setStep('dashboard');
         } else {
-            setStrategy(null);
+            setUserProfile(null);
             setOnboardingSuggestions(null);
             setError(null);
             setStep('profileInput');
         }
     } catch (e) {
-        console.error("Failed to parse strategy from localStorage", e);
+        console.error("Failed to parse profile from localStorage", e);
         setStep('profileInput');
-        setStrategy(null);
+        setUserProfile(null);
     }
   };
   
   const handleStartAsGuest = () => {
     setUser(GUEST_USER);
-    setStrategy(null);
+    setUserProfile(null);
     setOnboardingSuggestions(null);
     setError(null);
     setStep('profileInput');
@@ -88,27 +84,28 @@ const App: React.FC = () => {
         localStorage.removeItem('linkedin_strategy_user');
     }
     setUser(null);
-    setStrategy(null);
+    setUserProfile(null);
   };
   
   const handleStartOver = () => {
       if (window.confirm("Are you sure you want to start over? This will clear your current strategy and all related data.")) {
         if (user) {
-            localStorage.removeItem(`linkedin_strategy_${user.email}`);
+            localStorage.removeItem(`linkedin_profile_${user.email}`);
             localStorage.removeItem(`scheduled_posts_${user.email}`);
             localStorage.removeItem(`lastFollowVisit_${user.email}`);
             localStorage.removeItem(`followCount_${user.email}`);
         }
-        setStrategy(null);
+        setUserProfile(null);
         setOnboardingSuggestions(null);
         setError(null);
         setStep('profileInput');
       }
   };
 
-  const handleProfileSubmit = useCallback(async (profileText: string) => {
+  const handleProfileSubmit = useCallback(async (profileText: string, linkedInUrl: string) => {
     setStep('loadingSuggestions');
     setError(null);
+    setOnboardingState({ profileText, linkedInUrl });
     try {
       const suggestions = await analyzeProfileForOnboarding(profileText);
       if (suggestions) {
@@ -126,7 +123,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleReviewSubmit = useCallback(async (finalData: OnboardingData) => {
-      if (!user) {
+      if (!user || !onboardingState) {
           setError("Something went wrong, user data is missing.");
           setUser(null);
           return;
@@ -134,21 +131,56 @@ const App: React.FC = () => {
       setStep('loadingStrategy');
       setError(null);
       try {
-          const result = await generateStrategy(finalData);
-          setStrategy(result);
-          localStorage.setItem(`linkedin_strategy_${user.email}`, JSON.stringify(result));
+          const strategy = await generateStrategy(finalData);
+          const newUserProfile: UserProfileData = {
+            strategy,
+            onboardingData: finalData,
+            profileText: onboardingState.profileText,
+            linkedInUrl: onboardingState.linkedInUrl
+          };
+          setUserProfile(newUserProfile);
+          localStorage.setItem(`linkedin_profile_${user.email}`, JSON.stringify(newUserProfile));
           setStep('dashboard');
       } catch (err) {
           console.error(err);
           setError('There was an issue generating your final strategy. Please try again.');
           setStep('onboardingReview');
       }
-  }, [user]);
+  }, [user, onboardingState]);
 
   const handleBackToStart = () => {
       setStep('profileInput');
       setError(null);
   };
+
+  const handleProfileUpdate = useCallback((updatedProfile: UserProfileData) => {
+    if (!user) return;
+    setUserProfile(updatedProfile);
+    localStorage.setItem(`linkedin_profile_${user.email}`, JSON.stringify(updatedProfile));
+  }, [user]);
+
+  const handleRegenerateStrategy = useCallback(async (updatedData: { linkedInUrl: string, profileText: string, onboardingData: OnboardingData }) => {
+    if (!user) return;
+    setIsRegeneratingStrategy(true);
+    setError(null);
+    try {
+        const { linkedInUrl, profileText, onboardingData } = updatedData;
+        const newStrategy = await generateStrategy(onboardingData);
+        const newProfile: UserProfileData = {
+            linkedInUrl,
+            profileText,
+            onboardingData,
+            strategy: newStrategy,
+        };
+        handleProfileUpdate(newProfile);
+    } catch (err) {
+        console.error(err);
+        setError('There was an issue regenerating your strategy. Please try again.');
+        // The error will be displayed on the customization screen
+    } finally {
+        setIsRegeneratingStrategy(false);
+    }
+  }, [user, handleProfileUpdate]);
   
   if (isLoading) {
     return (
@@ -190,14 +222,18 @@ const App: React.FC = () => {
           </div>
         );
       case 'dashboard':
-        if (strategy && user) {
+        if (userProfile && user) {
           return <Dashboard 
-                    strategy={strategy} 
+                    userProfile={userProfile} 
                     user={user}
                     isGuest={user.email === GUEST_EMAIL}
                     onLogout={handleLogout}
                     onStartOver={handleStartOver}
                     onLoginRequest={() => setUser(null)}
+                    onProfileUpdate={handleProfileUpdate}
+                    onRegenerateStrategy={handleRegenerateStrategy}
+                    isRegeneratingStrategy={isRegeneratingStrategy}
+                    regenerationError={error}
                  />;
         }
         setStep('profileInput');
